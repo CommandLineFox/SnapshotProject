@@ -44,9 +44,15 @@ public class NodeRuntime {
     }
 
     public void handleMessage(Message message) {
+        int senderId = message.getSenderId();
+        if (!nodeModel.getNeighbors().contains(senderId)) {
+            log("Rejected message from non-neighbor Node " + senderId);
+            return;
+        }
+
         if ("TRANSFER".equals(message.getType())) {
             int amount = Integer.parseInt(message.getContent());
-            receiveBitcakes(amount, message.getSenderId());
+            receiveBitcakes(amount, senderId);
         } else {
             log("Unknown message type: " + message);
         }
@@ -54,6 +60,10 @@ public class NodeRuntime {
 
     public int getId() {
         return nodeModel.getId();
+    }
+
+    public int getBitcake() {
+        return nodeModel.getBitcake();
     }
 
     private void log(String msg) {

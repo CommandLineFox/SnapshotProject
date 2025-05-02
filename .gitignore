@@ -39,3 +39,6 @@ build/
 
 ### IntelliJ IDEA
 .idea/
+
+### Other files
+*.json
