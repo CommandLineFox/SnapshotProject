@@ -17,7 +17,6 @@ public class CliThread extends Thread {
         printHelp();
 
         while (true) {
-            System.out.print("> ");
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) continue;
 

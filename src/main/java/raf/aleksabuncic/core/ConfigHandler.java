@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import raf.aleksabuncic.types.Node;
 
-import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.*;
 
 public class ConfigHandler {
@@ -13,26 +14,32 @@ public class ConfigHandler {
         public Map<Integer, Node> allNodes = new HashMap<>();
     }
 
-    public static ConfigResult load(String path) {
+    public static ConfigResult load(String resourcePath) {
         ConfigResult result = new ConfigResult();
         try {
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(new File(path));
 
+            InputStream is = ConfigHandler.class.getClassLoader().getResourceAsStream(resourcePath);
+            if (is == null) {
+                throw new FileNotFoundException("Resource not found: " + resourcePath);
+            }
+
+            JsonNode root = mapper.readTree(is);
             result.snapshotType = root.get("snapshotType").asText();
 
             for (JsonNode nodeEntry : root.get("nodeList")) {
                 int id = nodeEntry.get("id").asInt();
                 int port = nodeEntry.get("port").asInt();
                 int bitcake = nodeEntry.get("bitcake").asInt();
-                List<Integer> neighbors = new ArrayList<>();
+                ArrayList<Integer> neighbors = new ArrayList<>();
                 for (JsonNode n : nodeEntry.get("neighbors")) {
                     neighbors.add(n.asInt());
                 }
 
-                Node node = new Node(id, port, bitcake, new ArrayList<>(neighbors));
+                Node node = new Node(id, port, bitcake, neighbors);
                 result.allNodes.put(id, node);
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
