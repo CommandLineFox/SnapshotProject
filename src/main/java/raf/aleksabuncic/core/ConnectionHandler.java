@@ -29,6 +29,11 @@ public class ConnectionHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles a single connection.
+     *
+     * @param socket Socket to handle.
+     */
     private void handle(Socket socket) {
         try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
             Message msg = (Message) in.readObject();

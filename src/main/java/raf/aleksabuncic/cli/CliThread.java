@@ -59,6 +59,9 @@ public class CliThread extends Thread {
         }
     }
 
+    /**
+     * Prints available commands.
+     */
     private void printHelp() {
         System.out.println("Available commands:");
         System.out.println("  send <targetNodeId> <amount> - Send bitcakes to neighbor");

@@ -14,6 +14,12 @@ public class ConfigHandler {
         public Map<Integer, Node> allNodes = new HashMap<>();
     }
 
+    /**
+     * Loads configuration from a JSON file.
+     *
+     * @param resourcePath Path to JSON file.
+     * @return ConfigResult object.
+     */
     public static ConfigResult load(String resourcePath) {
         ConfigResult result = new ConfigResult();
         try {

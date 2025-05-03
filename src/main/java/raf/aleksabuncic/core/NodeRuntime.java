@@ -14,11 +14,21 @@ public class NodeRuntime {
         this.neighborPortMap = neighborPortMap;
     }
 
+    /**
+     * Starts the node runtime.
+     */
     public void start() {
         int port = 5000 + nodeModel.getId();
         new Thread(new ConnectionHandler(this, port)).start();
     }
 
+    /**
+     * Tries to send bitcakes to a neighbor.
+     *
+     * @param neighborId ID of the neighbor to send to.
+     * @param amount     Amount of bitcakes to send.
+     * @return True if successful, false otherwise.
+     */
     public synchronized boolean trySendBitcakes(int neighborId, int amount) {
         if (!nodeModel.getNeighbors().contains(neighborId)) {
             log("Cannot send to Node " + neighborId + ": not a neighbor.");
@@ -38,34 +48,60 @@ public class NodeRuntime {
         return true;
     }
 
+    /**
+     * Receives bitcakes from a neighbor.
+     *
+     * @param amount   Amount of bitcakes received.
+     * @param senderId ID of the neighbor that sent the bitcakes.
+     */
     public synchronized void receiveBitcakes(int amount, int senderId) {
         nodeModel.setBitcake(nodeModel.getBitcake() + amount);
         log("Received " + amount + " bitcakes from Node " + senderId);
     }
 
+    /**
+     * Handles a single message.
+     *
+     * @param message Message to handle.
+     */
     public void handleMessage(Message message) {
-        int senderId = message.getSenderId();
+        int senderId = message.senderId();
         if (!nodeModel.getNeighbors().contains(senderId)) {
             log("Rejected message from non-neighbor Node " + senderId);
             return;
         }
 
-        if ("TRANSFER".equals(message.getType())) {
-            int amount = Integer.parseInt(message.getContent());
+        if ("TRANSFER".equals(message.type())) {
+            int amount = Integer.parseInt(message.content());
             receiveBitcakes(amount, senderId);
         } else {
             log("Unknown message type: " + message);
         }
     }
 
+    /**
+     * Returns the ID of the node.
+     *
+     * @return Node ID.
+     */
     public int getId() {
         return nodeModel.getId();
     }
 
+    /**
+     * Returns the current bitcake balance.
+     *
+     * @return Bitcake balance.
+     */
     public int getBitcake() {
         return nodeModel.getBitcake();
     }
 
+    /**
+     * Logs a message.
+     *
+     * @param msg Message to log.
+     */
     private void log(String msg) {
         System.out.println("[Node " + getId() + "] " + msg);
     }

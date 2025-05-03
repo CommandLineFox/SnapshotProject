@@ -17,7 +17,6 @@ public class Launcher {
             commandsFile = "/instructions/commands_linux.txt";
         }
 
-        // Read commands from resources
         try (InputStream is = Launcher.class.getResourceAsStream(commandsFile)) {
             if (is == null) {
                 throw new FileNotFoundException("Commands file not found in resources: " + commandsFile);
