@@ -4,6 +4,9 @@ import raf.aleksabuncic.cli.CliThread;
 import raf.aleksabuncic.core.ConfigHandler;
 import raf.aleksabuncic.core.NodeRuntime;
 import raf.aleksabuncic.types.Node;
+import raf.aleksabuncic.types.snapshot.AcharyaBadrinathSnapshot;
+import raf.aleksabuncic.types.snapshot.AlagarVenkatesanSnapshot;
+import raf.aleksabuncic.types.snapshot.CoordinatedCheckpointingSnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +38,23 @@ public class Starter {
         }
 
         NodeRuntime runtime = new NodeRuntime(selfNode, neighborPortMap);
+
+        switch (config.snapshotType) {
+            case "acharya":
+                runtime.setSnapshot(new AcharyaBadrinathSnapshot(runtime));
+                break;
+            case "alagar":
+                runtime.setSnapshot(new AlagarVenkatesanSnapshot(runtime));
+                break;
+            case "checkpoint":
+                runtime.setSnapshot(new CoordinatedCheckpointingSnapshot(runtime));
+                break;
+            default:
+                System.out.println("Unknown snapshot type.");
+        }
+
         runtime.start();
+
         CliThread cliThread = new CliThread(runtime);
         cliThread.start();
     }

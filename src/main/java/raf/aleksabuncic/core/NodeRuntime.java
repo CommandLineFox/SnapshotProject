@@ -1,5 +1,6 @@
 package raf.aleksabuncic.core;
 
+import raf.aleksabuncic.types.snapshot.Snapshot;
 import raf.aleksabuncic.types.Message;
 import raf.aleksabuncic.types.Node;
 
@@ -8,6 +9,7 @@ import java.util.Map;
 public class NodeRuntime {
     private final Node nodeModel;
     private final Map<Integer, Integer> neighborPortMap;
+    private Snapshot activeSnapshot;
 
     public NodeRuntime(Node nodeModel, Map<Integer, Integer> neighborPortMap) {
         this.nodeModel = nodeModel;
@@ -18,7 +20,7 @@ public class NodeRuntime {
      * Starts the node runtime.
      */
     public void start() {
-        int port = 5000 + nodeModel.getId();
+        int port = nodeModel.getPort();
         new Thread(new ConnectionHandler(this, port)).start();
     }
 
@@ -74,8 +76,32 @@ public class NodeRuntime {
         if ("TRANSFER".equals(message.type())) {
             int amount = Integer.parseInt(message.content());
             receiveBitcakes(amount, senderId);
+        } else if (message.type().startsWith("SNAPSHOT")) {
+            if (activeSnapshot != null) {
+                activeSnapshot.handleMessage(message);
+            }
         } else {
             log("Unknown message type: " + message);
+        }
+    }
+
+    /**
+     * Set the current snapshot type
+     *
+     * @param snapshot Snapshot to set
+     */
+    public synchronized void setSnapshot(Snapshot snapshot) {
+        this.activeSnapshot = snapshot;
+    }
+
+    /**
+     * Start snapshot
+     */
+    public synchronized void startSnapshot() {
+        if (activeSnapshot != null) {
+            activeSnapshot.initiate();
+        } else {
+            log("No snapshot strategy set.");
         }
     }
 
