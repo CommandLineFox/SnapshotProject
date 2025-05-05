@@ -1,4 +1,4 @@
-package raf.aleksabuncic.core;
+package raf.aleksabuncic.core.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;

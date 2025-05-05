@@ -1,5 +1,6 @@
-package raf.aleksabuncic.core;
+package raf.aleksabuncic.core.handler;
 
+import raf.aleksabuncic.core.NodeRuntime;
 import raf.aleksabuncic.types.Message;
 
 import java.io.ObjectInputStream;

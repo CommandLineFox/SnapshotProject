@@ -1,5 +1,8 @@
 package raf.aleksabuncic.core;
 
+import lombok.Getter;
+import raf.aleksabuncic.core.handler.ConnectionHandler;
+import raf.aleksabuncic.core.handler.Sender;
 import raf.aleksabuncic.types.Snapshot;
 import raf.aleksabuncic.types.Message;
 import raf.aleksabuncic.types.Node;
@@ -7,7 +10,9 @@ import raf.aleksabuncic.types.Node;
 import java.util.Map;
 
 public class NodeRuntime {
+    @Getter
     private final Node nodeModel;
+    @Getter
     private final Map<Integer, Integer> neighborPortMap;
     private Snapshot activeSnapshot;
 
@@ -31,11 +36,6 @@ public class NodeRuntime {
      * @param amount     Amount of bitcakes to send.
      */
     public synchronized void trySendBitcakes(int neighborId, int amount) {
-        if (!nodeModel.isAvailable()) {
-            log("Cannot send bitcakes while in SNAPSHOT state.");
-            return;
-        }
-
         if (!nodeModel.getNeighbors().contains(neighborId)) {
             log("Cannot send to Node " + neighborId + ": not a neighbor.");
             return;
@@ -60,9 +60,10 @@ public class NodeRuntime {
      * @param senderId ID of the neighbor that sent the bitcakes.
      */
     public synchronized void receiveBitcakes(int amount, int senderId) {
-        if (!nodeModel.isAvailable()) {
-            log("Ignoring bitcakes received while in SNAPSHOT state.");
-            return;
+        Message m = new Message("TRANSFER", senderId, String.valueOf(amount));
+
+        if (activeSnapshot != null) {
+            activeSnapshot.handleMessage(m);
         }
 
         nodeModel.setBitcake(nodeModel.getBitcake() + amount);
@@ -94,16 +95,32 @@ public class NodeRuntime {
     }
 
     /**
-     * Set the current snapshot type
+     * Sends a message to a neighbor node.
      *
-     * @param snapshot Snapshot to set
+     * @param neighborId ID of the neighbor node.
+     * @param message    Message to send.
+     */
+    public void sendMessageTo(int neighborId, Message message) {
+        if (!neighborPortMap.containsKey(neighborId)) {
+            log("Cannot send to unknown neighbor: " + neighborId);
+            return;
+        }
+        int port = neighborPortMap.get(neighborId);
+        Sender.sendMessage("localhost", port, message);
+        log("Sent message to Node " + neighborId + ": " + message);
+    }
+
+    /**
+     * Set the current snapshot type.
+     *
+     * @param snapshot Snapshot to set.
      */
     public synchronized void setSnapshot(Snapshot snapshot) {
         this.activeSnapshot = snapshot;
     }
 
     /**
-     * Start snapshot
+     * Start snapshot.
      */
     public synchronized void startSnapshot() {
         if (activeSnapshot != null) {

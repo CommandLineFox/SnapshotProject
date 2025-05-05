@@ -5,11 +5,12 @@ import raf.aleksabuncic.core.NodeRuntime;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Snapshot {
     protected final NodeRuntime runtime;
-    private static final ReentrantLock fileLock = new ReentrantLock(); // globalno za output.txt
+    private static final ReentrantLock fileLock = new ReentrantLock();
 
     public Snapshot(NodeRuntime runtime) {
         this.runtime = runtime;
@@ -21,16 +22,16 @@ public abstract class Snapshot {
     public abstract void initiate();
 
     /**
-     * Handles a snapshot-related message
+     * Handles a snapshot-related message.
      *
      * @param message Message to handle.
      */
     public abstract void handleMessage(Message message);
 
     /**
-     * Logging into an output file
+     * Writes a line to output.txt in a thread-safe manner.
      *
-     * @param line Line to log
+     * @param line Line to write.
      */
     protected void writeToOutput(String line) {
         fileLock.lock();
@@ -44,7 +45,7 @@ public abstract class Snapshot {
     }
 
     /**
-     * Logs a message.
+     * Logs a message to the console.
      *
      * @param msg Message to log.
      */
@@ -53,16 +54,16 @@ public abstract class Snapshot {
     }
 
     /**
-     * Returns the current bitcake balance.
+     * Gets current bitcake balance.
      *
-     * @return Bitcake balance.
+     * @return Bitcake value.
      */
     protected int getBitcake() {
         return runtime.getBitcake();
     }
 
     /**
-     * Returns the ID of the node.
+     * Gets this node's ID.
      *
      * @return Node ID.
      */
@@ -71,11 +72,42 @@ public abstract class Snapshot {
     }
 
     /**
-     * Logs a message and buffers it for later sending.
+     * Buffers a message (if needed for future extensions).
      *
      * @param message Message to buffer.
      */
     protected void bufferMessage(Message message) {
         log("Buffered message: " + message);
+    }
+
+    /**
+     * Sends marker message to all neighbors.
+     *
+     * @param markerType Type of marker message (e.g., "SNAPSHOT_MARKER")
+     */
+    protected void sendMarkerToAllNeighbors(String markerType) {
+        for (int neighborId : runtime.getNodeModel().getNeighbors()) {
+            Message marker = new Message(markerType, getNodeId(), "");
+            runtime.sendMessageTo(neighborId, marker);
+        }
+    }
+
+    /**
+     * Checks if snapshot is complete (all neighbors have sent a marker).
+     *
+     * @param receivedMarkers Set of node IDs from which marker was received.
+     * @return true if snapshot is complete, false otherwise.
+     */
+    protected boolean isSnapshotComplete(Set<Integer> receivedMarkers) {
+        return receivedMarkers.containsAll(runtime.getNodeModel().getNeighbors());
+    }
+
+    /**
+     * Sets node state based on snapshot status.
+     *
+     * @param active true if snapshot is active, false to reset to available.
+     */
+    protected void setSnapshotState(boolean active) {
+        runtime.getNodeModel().setState(active ? NodeState.SNAPSHOT : NodeState.AVAILABLE);
     }
 }

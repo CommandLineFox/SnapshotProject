@@ -1,4 +1,4 @@
-package raf.aleksabuncic.core;
+package raf.aleksabuncic.core.handler;
 
 import raf.aleksabuncic.types.Message;
 

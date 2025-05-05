@@ -9,7 +9,8 @@ import java.util.ArrayList;
 public class Node {
     private final int id;
     private final int port;
-    private final NodeState state;
+    @Setter
+    private NodeState state;
     private final ArrayList<Integer> neighbors;
     @Setter
     private int bitcake;
