@@ -7,12 +7,12 @@ import java.util.ArrayList;
 
 @Getter
 public class Node {
-    private int id;
-    private int port;
-    private NodeState state;
+    private final int id;
+    private final int port;
+    private final NodeState state;
+    private final ArrayList<Integer> neighbors;
     @Setter
     private int bitcake;
-    private ArrayList<Integer> neighbors;
 
     public Node(int id, int port, int bitcake, ArrayList<Integer> neighbors) {
         this.id = id;
@@ -21,4 +21,14 @@ public class Node {
         this.bitcake = bitcake;
         this.neighbors = neighbors;
     }
+
+    /**
+     * Check if the node is available
+     *
+     * @return True if available, false if not
+     */
+    public boolean isAvailable() {
+        return this.state == NodeState.AVAILABLE;
+    }
+
 }

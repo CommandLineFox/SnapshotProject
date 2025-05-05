@@ -4,9 +4,9 @@ import raf.aleksabuncic.cli.CliThread;
 import raf.aleksabuncic.core.ConfigHandler;
 import raf.aleksabuncic.core.NodeRuntime;
 import raf.aleksabuncic.types.Node;
-import raf.aleksabuncic.types.snapshot.AcharyaBadrinathSnapshot;
-import raf.aleksabuncic.types.snapshot.AlagarVenkatesanSnapshot;
-import raf.aleksabuncic.types.snapshot.CoordinatedCheckpointingSnapshot;
+import raf.aleksabuncic.core.AcharyaBadrinathSnapshot;
+import raf.aleksabuncic.core.AlagarVenkatesanSnapshot;
+import raf.aleksabuncic.core.CoordinatedCheckpointingSnapshot;
 
 import java.util.HashMap;
 import java.util.Map;

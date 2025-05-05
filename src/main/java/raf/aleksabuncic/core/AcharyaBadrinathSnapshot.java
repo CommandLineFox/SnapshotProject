@@ -1,7 +1,7 @@
-package raf.aleksabuncic.types.snapshot;
+package raf.aleksabuncic.core;
 
-import raf.aleksabuncic.core.NodeRuntime;
 import raf.aleksabuncic.types.Message;
+import raf.aleksabuncic.types.Snapshot;
 
 public class AcharyaBadrinathSnapshot extends Snapshot {
     public AcharyaBadrinathSnapshot(NodeRuntime runtime) {

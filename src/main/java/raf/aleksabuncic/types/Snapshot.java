@@ -1,7 +1,6 @@
-package raf.aleksabuncic.types.snapshot;
+package raf.aleksabuncic.types;
 
 import raf.aleksabuncic.core.NodeRuntime;
-import raf.aleksabuncic.types.Message;
 
 public abstract class Snapshot {
     protected final NodeRuntime runtime;
