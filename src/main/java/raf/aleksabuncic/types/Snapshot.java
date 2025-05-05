@@ -2,15 +2,13 @@ package raf.aleksabuncic.types;
 
 import raf.aleksabuncic.core.NodeRuntime;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Snapshot {
     protected final NodeRuntime runtime;
-    private static final ReentrantLock fileLock = new ReentrantLock();
 
     public Snapshot(NodeRuntime runtime) {
         this.runtime = runtime;
@@ -29,20 +27,27 @@ public abstract class Snapshot {
     public abstract void handleMessage(Message message);
 
     /**
-     * Writes a line to output.txt in a thread-safe manner.
+     * Writes a line to output/output.txt in a thread-safe manner.
      *
      * @param line Line to write.
      */
     protected void writeToOutput(String line) {
-        fileLock.lock();
-        try (PrintWriter writer = new PrintWriter(new FileWriter("output.txt", true))) {
-            writer.println(line);
-        } catch (IOException e) {
-            System.err.println("Failed to write to output.txt: " + e.getMessage());
-        } finally {
-            fileLock.unlock();
+        File outputFile = new File("output/output.txt");
+        synchronized (Snapshot.class) {
+            try {
+                outputFile.getParentFile().mkdirs();
+                if (!outputFile.exists()) {
+                    outputFile.createNewFile();
+                }
+                try (FileWriter writer = new FileWriter(outputFile, true)) {
+                    writer.write(line + System.lineSeparator());
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
+
 
     /**
      * Logs a message to the console.
@@ -109,5 +114,13 @@ public abstract class Snapshot {
      */
     protected void setSnapshotState(boolean active) {
         runtime.getNodeModel().setState(active ? NodeState.SNAPSHOT : NodeState.AVAILABLE);
+    }
+
+    /**
+     * Writes the current state of the node (Node ID and bitcake balance) to output.txt.
+     */
+    protected void writeNodeStateToOutput() {
+        String state = "SNAPSHOT NODE_STATE: Node " + getNodeId() + " | Bitcakes: " + getBitcake();
+        writeToOutput(state);
     }
 }

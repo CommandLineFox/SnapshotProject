@@ -7,9 +7,12 @@ import raf.aleksabuncic.types.Snapshot;
 import raf.aleksabuncic.types.Message;
 import raf.aleksabuncic.types.Node;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class NodeRuntime {
+    @Getter
+    private final Map<Integer, Integer> requestSourceMap = new HashMap<>();
     @Getter
     private final Node nodeModel;
     @Getter
@@ -70,27 +73,29 @@ public class NodeRuntime {
         log("Received " + amount + " bitcakes from Node " + senderId);
     }
 
-    /**
-     * Handles a single message.
-     *
-     * @param message Message to handle.
-     */
     public void handleMessage(Message message) {
         int senderId = message.senderId();
-        if (!nodeModel.getNeighbors().contains(senderId)) {
-            log("Rejected message from non-neighbor Node " + senderId);
-            return;
-        }
 
-        if ("TRANSFER".equals(message.type())) {
-            int amount = Integer.parseInt(message.content());
-            receiveBitcakes(amount, senderId);
-        } else if (message.type().startsWith("SNAPSHOT")) {
-            if (activeSnapshot != null) {
-                activeSnapshot.handleMessage(message);
+        switch (message.type()) {
+            case "TRANSFER" -> {
+                int amount = Integer.parseInt(message.content());
+                receiveBitcakes(amount, senderId);
             }
-        } else {
-            log("Unknown message type: " + message);
+            case "CHECKPOINT_REQUEST" -> {
+                if (activeSnapshot != null) {
+                    activeSnapshot.handleMessage(message);
+                } else {
+                    log("No active snapshot to handle CHECKPOINT_REQUEST: " + message);
+                }
+            }
+            case "SNAPSHOT_MARKER" -> {
+                if (activeSnapshot != null) {
+                    activeSnapshot.handleMessage(message);
+                } else {
+                    log("No active snapshot to handle SNAPSHOT_MARKER: " + message);
+                }
+            }
+            default -> log("Unknown message type: " + message.type());
         }
     }
 
@@ -106,8 +111,12 @@ public class NodeRuntime {
             return;
         }
         int port = neighborPortMap.get(neighborId);
-        Sender.sendMessage("localhost", port, message);
-        log("Sent message to Node " + neighborId + ": " + message);
+        try {
+            Sender.sendMessage("localhost", port, message);
+            log("Sent message to Node " + neighborId + ": " + message);
+        } catch (Exception e) {
+            log("Failed to send message to Node " + neighborId + ": " + e.getMessage());
+        }
     }
 
     /**

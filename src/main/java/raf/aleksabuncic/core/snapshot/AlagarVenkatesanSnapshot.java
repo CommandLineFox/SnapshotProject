@@ -2,6 +2,7 @@ package raf.aleksabuncic.core.snapshot;
 
 import raf.aleksabuncic.core.NodeRuntime;
 import raf.aleksabuncic.types.Message;
+import raf.aleksabuncic.types.NodeState;
 import raf.aleksabuncic.types.Snapshot;
 
 import java.util.HashMap;
@@ -11,54 +12,75 @@ import java.util.Set;
 
 public class AlagarVenkatesanSnapshot extends Snapshot {
     private boolean recorded = false;
-    private int recordedBitcake;
-    private final Set<Integer> neighbors = new HashSet<>();
     private final Map<Integer, Integer> channelStates = new HashMap<>();
+    private final Set<Integer> receivedMarkers = new HashSet<>();
 
     public AlagarVenkatesanSnapshot(NodeRuntime runtime) {
         super(runtime);
-        this.neighbors.addAll(runtime.getNodeModel().getNeighbors());
     }
 
     @Override
     public synchronized void initiate() {
-        if (recorded) return;
+        if (!canInitiateSnapshot()) {
+            log("Cannot initiate snapshot: already in SNAPSHOT state or invalid node state.");
+            return;
+        }
 
         log("Initiating Alagar-Venkatesan snapshot...");
         recorded = true;
         setSnapshotState(true);
 
-        recordedBitcake = getBitcake();
-        writeToOutput("SNAPSHOT " + getNodeId() + ": RECORDED " + recordedBitcake);
+        writeNodeStateToOutput();
 
-        sendMarkerToAllNeighbors("AV_MARKER");
+        sendMarkerToAllNeighbors("SNAPSHOT_MARKER");
     }
 
     @Override
     public synchronized void handleMessage(Message message) {
-        int senderId = message.senderId();
-
         switch (message.type()) {
-            case "AV_MARKER" -> {
-                log("Received AV_MARKER from Node " + senderId);
-                neighbors.remove(senderId);
+            case "SNAPSHOT_MARKER" -> handleMarkerMessage(message.senderId());
+            case "TRANSFER" -> handleTransferMessage(message.senderId(), Integer.parseInt(message.content()));
+            default -> log("Unknown message type received: " + message.type());
+        }
+    }
 
-                if (!recorded) initiate();
+    private void handleMarkerMessage(int senderId) {
+        log("Received MARKER from Node " + senderId);
 
-                if (neighbors.isEmpty()) {
-                    writeToOutput("SNAPSHOT " + getNodeId() + ": COMPLETE " +
-                            recordedBitcake + " IN_CHANNELS=" + channelStates);
-                    log("Snapshot complete.");
-                    setSnapshotState(false);
-                }
-            }
-            case "TRANSFER" -> {
-                int amount = Integer.parseInt(message.content());
-                if (recorded && neighbors.contains(senderId)) {
-                    channelStates.merge(senderId, amount, Integer::sum);
-                    log("Buffered " + amount + " from Node " + senderId + " during snapshot");
-                }
-            }
+        if (!recorded) {
+            initiate();
+        }
+
+        receivedMarkers.add(senderId);
+
+        if (isSnapshotComplete(receivedMarkers)) {
+            log("Snapshot complete. Writing channel states...");
+            writeChannelStatesToOutput();
+            resetSnapshot();
+        }
+    }
+
+    private void handleTransferMessage(int senderId, int amount) {
+        if (recorded && !receivedMarkers.contains(senderId)) {
+            channelStates.merge(senderId, amount, Integer::sum);
+            log("Buffered " + amount + " from Node " + senderId + " during snapshot.");
+        }
+    }
+
+    private void resetSnapshot() {
+        setSnapshotState(false);
+        recorded = false;
+        receivedMarkers.clear();
+        channelStates.clear();
+    }
+
+    private boolean canInitiateSnapshot() {
+        return runtime.getNodeModel().getState() == NodeState.AVAILABLE && !recorded;
+    }
+
+    private void writeChannelStatesToOutput() {
+        for (Map.Entry<Integer, Integer> entry : channelStates.entrySet()) {
+            writeToOutput("CHANNEL_STATE from Node " + entry.getKey() + ": " + entry.getValue() + " bitcakes");
         }
     }
 }

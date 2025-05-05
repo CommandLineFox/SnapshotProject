@@ -2,6 +2,7 @@ package raf.aleksabuncic.core.snapshot;
 
 import raf.aleksabuncic.core.NodeRuntime;
 import raf.aleksabuncic.types.Message;
+import raf.aleksabuncic.types.NodeState;
 import raf.aleksabuncic.types.Snapshot;
 
 import java.util.HashMap;
@@ -11,7 +12,6 @@ import java.util.Set;
 
 public class AcharyaBadrinathSnapshot extends Snapshot {
     private boolean recorded = false;
-    private int recordedBitcake;
     private final Map<Integer, Integer> channelStates = new HashMap<>();
     private final Set<Integer> receivedMarkers = new HashSet<>();
 
@@ -21,14 +21,16 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
 
     @Override
     public synchronized void initiate() {
-        if (recorded) return;
+        if (!canInitiateSnapshot()) {
+            log("Cannot initiate snapshot: already in SNAPSHOT state or invalid node state.");
+            return;
+        }
 
         log("Initiating Acharya-Badrinath snapshot...");
         recorded = true;
         setSnapshotState(true);
 
-        recordedBitcake = getBitcake();
-        writeToOutput("SNAPSHOT " + getNodeId() + ": RECORDED " + recordedBitcake);
+        writeNodeStateToOutput();
 
         sendMarkerToAllNeighbors("SNAPSHOT_MARKER");
     }
@@ -38,25 +40,49 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
         int senderId = message.senderId();
 
         switch (message.type()) {
-            case "SNAPSHOT_MARKER" -> {
-                log("Received MARKER from Node " + senderId);
-                if (!recorded) initiate();
-                receivedMarkers.add(senderId);
-
-                if (isSnapshotComplete(receivedMarkers)) {
-                    log("Snapshot complete. Final state:");
-                    writeToOutput("SNAPSHOT " + getNodeId() + ": COMPLETE " +
-                            recordedBitcake + " IN_CHANNELS=" + channelStates);
-                    setSnapshotState(false);
-                }
-            }
-            case "TRANSFER" -> {
-                int amount = Integer.parseInt(message.content());
-                if (recorded && !receivedMarkers.contains(senderId)) {
-                    channelStates.merge(senderId, amount, Integer::sum);
-                    log("Buffered " + amount + " from Node " + senderId + " during snapshot");
-                }
-            }
+            case "SNAPSHOT_MARKER" -> handleMarker(senderId);
+            case "TRANSFER" -> handleTransfer(senderId, Integer.parseInt(message.content()));
+            default -> log("Unknown message type received: " + message.type());
         }
+    }
+
+    private void handleMarker(int senderId) {
+        log("Received MARKER from Node " + senderId);
+
+        if (!recorded) {
+            initiate();
+        }
+
+        receivedMarkers.add(senderId);
+
+        if (isSnapshotComplete(receivedMarkers)) {
+            log("Snapshot complete. Writing channel states...");
+            writeChannelStatesToOutput();
+            resetSnapshot();
+        }
+    }
+
+    private void handleTransfer(int senderId, int amount) {
+        if (recorded && !receivedMarkers.contains(senderId)) {
+            channelStates.merge(senderId, amount, Integer::sum);
+            log("Buffered " + amount + " from Node " + senderId + " during snapshot");
+        }
+    }
+
+    private void writeChannelStatesToOutput() {
+        for (Map.Entry<Integer, Integer> entry : channelStates.entrySet()) {
+            writeToOutput("CHANNEL_STATE from Node " + entry.getKey() + ": " + entry.getValue() + " bitcakes");
+        }
+    }
+
+    private void resetSnapshot() {
+        setSnapshotState(false);
+        recorded = false;
+        receivedMarkers.clear();
+        channelStates.clear();
+    }
+
+    private boolean canInitiateSnapshot() {
+        return runtime.getNodeModel().getState() == NodeState.AVAILABLE && !recorded;
     }
 }

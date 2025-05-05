@@ -39,8 +39,12 @@ public class CliThread extends Thread {
                     break;
 
                 case "snapshot":
-                    // TODO: implement snapshot start
-                    System.out.println("Snapshot feature not implemented yet.");
+                    try {
+                        runtime.startSnapshot();
+                        System.out.println("Snapshot initiated successfully.");
+                    } catch (Exception e) {
+                        System.out.println("Failed to initiate snapshot: " + e.getMessage());
+                    }
                     break;
 
                 case "print":
