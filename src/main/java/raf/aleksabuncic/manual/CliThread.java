@@ -1,4 +1,4 @@
-package raf.aleksabuncic.cli;
+package raf.aleksabuncic.manual;
 
 import raf.aleksabuncic.core.NodeRuntime;
 

@@ -1,6 +1,5 @@
-package raf.aleksabuncic;
+package raf.aleksabuncic.manual;
 
-import raf.aleksabuncic.cli.CliThread;
 import raf.aleksabuncic.core.ConfigHandler;
 import raf.aleksabuncic.core.NodeRuntime;
 import raf.aleksabuncic.types.Node;
@@ -40,13 +39,13 @@ public class Starter {
         NodeRuntime runtime = new NodeRuntime(selfNode, neighborPortMap);
 
         switch (config.snapshotType) {
-            case "acharya":
+            case "ab":
                 runtime.setSnapshot(new AcharyaBadrinathSnapshot(runtime));
                 break;
-            case "alagar":
+            case "av":
                 runtime.setSnapshot(new AlagarVenkatesanSnapshot(runtime));
                 break;
-            case "checkpoint":
+            case "kc":
                 runtime.setSnapshot(new CoordinatedCheckpointingSnapshot(runtime));
                 break;
             default:

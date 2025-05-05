@@ -21,7 +21,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>raf.aleksabuncic.Starter</mainClass>
+                            <mainClass>raf.aleksabuncic.manual.Starter</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

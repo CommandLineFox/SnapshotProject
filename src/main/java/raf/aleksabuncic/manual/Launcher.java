@@ -1,5 +1,5 @@
 
-package raf.aleksabuncic;
+package raf.aleksabuncic.manual;
 
 import java.io.*;
 import java.util.List;
