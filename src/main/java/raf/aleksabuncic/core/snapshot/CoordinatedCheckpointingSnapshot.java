@@ -57,6 +57,11 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Handles a checkpoint request.
+     *
+     * @param message Message containing the initiator ID.
+     */
     private void handleCheckpointRequest(Message message) {
         int initiatorId = Integer.parseInt(message.content());
         int senderId = message.senderId();
@@ -90,6 +95,11 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Handles a checkpoint acknowledgement.
+     *
+     * @param message Message containing the initiator ID.
+     */
     private void handleCheckpointAck(Message message) {
         int initiatorId = Integer.parseInt(message.content());
         int senderId = message.senderId();
@@ -121,6 +131,11 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Finalizes a snapshot instance.
+     *
+     * @param initiatorId ID of the snapshot instance to finalize.
+     */
     private void finalizeSnapshot(int initiatorId) {
         if (!receivedRequests.contains(initiatorId)) {
             log("Cannot finalize unknown snapshot instance.");

@@ -44,6 +44,11 @@ public class AlagarVenkatesanSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Handles a marker message.
+     *
+     * @param senderId ID of the sender.
+     */
     private void handleMarkerMessage(int senderId) {
         log("Received MARKER from Node " + senderId);
 
@@ -60,6 +65,12 @@ public class AlagarVenkatesanSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Handles a transfer message.
+     *
+     * @param senderId ID of the sender.
+     * @param amount   Amount of bitcakes transferred.
+     */
     private void handleTransferMessage(int senderId, int amount) {
         if (recorded && !receivedMarkers.contains(senderId)) {
             channelStates.merge(senderId, amount, Integer::sum);
@@ -67,6 +78,9 @@ public class AlagarVenkatesanSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Reset snapshot values
+     */
     private void resetSnapshot() {
         setSnapshotState(false);
         recorded = false;
@@ -74,10 +88,18 @@ public class AlagarVenkatesanSnapshot extends Snapshot {
         channelStates.clear();
     }
 
+    /**
+     * Check if it is the snapshot can be initialized
+     *
+     * @return True if it can be, false if not
+     */
     private boolean canInitiateSnapshot() {
         return runtime.getNodeModel().getState() == NodeState.AVAILABLE && !recorded;
     }
 
+    /**
+     * Write channel state to output
+     */
     private void writeChannelStatesToOutput() {
         for (Map.Entry<Integer, Integer> entry : channelStates.entrySet()) {
             writeToOutput("CHANNEL_STATE from Node " + entry.getKey() + ": " + entry.getValue() + " bitcakes");

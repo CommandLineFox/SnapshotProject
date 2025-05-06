@@ -46,6 +46,11 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Handle marker from a sender
+     *
+     * @param senderId ID of the sender
+     */
     private void handleMarker(int senderId) {
         log("Received MARKER from Node " + senderId);
 
@@ -62,6 +67,12 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Handle transfer that happened during snapshot
+     *
+     * @param senderId ID of the sender node
+     * @param amount   amount to transfer
+     */
     private void handleTransfer(int senderId, int amount) {
         if (recorded && !receivedMarkers.contains(senderId)) {
             channelStates.merge(senderId, amount, Integer::sum);
@@ -69,12 +80,18 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
         }
     }
 
+    /**
+     * Write result into output log
+     */
     private void writeChannelStatesToOutput() {
         for (Map.Entry<Integer, Integer> entry : channelStates.entrySet()) {
             writeToOutput("CHANNEL_STATE from Node " + entry.getKey() + ": " + entry.getValue() + " bitcakes");
         }
     }
 
+    /**
+     * Reset snapshot values
+     */
     private void resetSnapshot() {
         setSnapshotState(false);
         recorded = false;
@@ -82,6 +99,11 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
         channelStates.clear();
     }
 
+    /**
+     * Check if a snapshot can be initialized
+     *
+     * @return True if it can be, false if not
+     */
     private boolean canInitiateSnapshot() {
         return runtime.getNodeModel().getState() == NodeState.AVAILABLE && !recorded;
     }
