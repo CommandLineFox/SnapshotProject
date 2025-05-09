@@ -81,23 +81,17 @@ public class NodeRuntime {
                 int amount = Integer.parseInt(message.content());
                 receiveBitcakes(amount, senderId);
             }
-            case "CHECKPOINT_REQUEST" -> {
+            case "CHECKPOINT_REQUEST", "CHECKPOINT_ACK", "SNAPSHOT_MARKER" -> {
                 if (activeSnapshot != null) {
                     activeSnapshot.handleMessage(message);
                 } else {
-                    log("No active snapshot to handle CHECKPOINT_REQUEST: " + message);
-                }
-            }
-            case "SNAPSHOT_MARKER" -> {
-                if (activeSnapshot != null) {
-                    activeSnapshot.handleMessage(message);
-                } else {
-                    log("No active snapshot to handle SNAPSHOT_MARKER: " + message);
+                    log("No active snapshot to handle " + message.type() + ": " + message);
                 }
             }
             default -> log("Unknown message type: " + message.type());
         }
     }
+
 
     /**
      * Sends a message to a neighbor node.

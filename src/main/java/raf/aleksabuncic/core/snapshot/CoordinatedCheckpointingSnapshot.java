@@ -13,6 +13,7 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
     private final Set<Integer> receivedRequests = new HashSet<>();
     private final Map<Integer, Set<Integer>> acksReceivedPerInitiator = new HashMap<>();
     private final Map<Integer, Set<Integer>> requestsSentPerInitiator = new HashMap<>();
+    private final Set<Integer> stateRecordedForInitiator = new HashSet<>(); // NEW
 
     public CoordinatedCheckpointingSnapshot(NodeRuntime runtime) {
         super(runtime);
@@ -30,7 +31,12 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
 
         receivedRequests.add(initiatorId);
         setSnapshotState(true);
-        writeNodeStateToOutput();
+
+        // Write state only once per initiator
+        if (!stateRecordedForInitiator.contains(initiatorId)) {
+            writeNodeStateToOutput();
+            stateRecordedForInitiator.add(initiatorId);
+        }
 
         Set<Integer> neighbors = new HashSet<>(runtime.getNodeModel().getNeighbors());
         requestsSentPerInitiator.put(initiatorId, neighbors);
@@ -58,9 +64,9 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
     }
 
     /**
-     * Handles a checkpoint request.
+     * Handle receiving checkpoint request
      *
-     * @param message Message containing the initiator ID.
+     * @param message Message to handle
      */
     private void handleCheckpointRequest(Message message) {
         int initiatorId = Integer.parseInt(message.content());
@@ -70,11 +76,14 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
 
         if (!receivedRequests.contains(initiatorId)) {
             receivedRequests.add(initiatorId);
-
             runtime.getRequestSourceMap().putIfAbsent(initiatorId, senderId);
 
             setSnapshotState(true);
-            writeNodeStateToOutput();
+
+            if (!stateRecordedForInitiator.contains(initiatorId)) {
+                writeNodeStateToOutput();
+                stateRecordedForInitiator.add(initiatorId);
+            }
 
             Set<Integer> neighborsToNotify = new HashSet<>();
             for (int neighborId : runtime.getNodeModel().getNeighbors()) {
@@ -96,9 +105,9 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
     }
 
     /**
-     * Handles a checkpoint acknowledgement.
+     * Handle receiving checkpoint acknowledgement
      *
-     * @param message Message containing the initiator ID.
+     * @param message Message to handle
      */
     private void handleCheckpointAck(Message message) {
         int initiatorId = Integer.parseInt(message.content());
@@ -132,9 +141,9 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
     }
 
     /**
-     * Finalizes a snapshot instance.
+     * Completing of snapshot
      *
-     * @param initiatorId ID of the snapshot instance to finalize.
+     * @param initiatorId ID of the initiator
      */
     private void finalizeSnapshot(int initiatorId) {
         if (!receivedRequests.contains(initiatorId)) {
@@ -142,9 +151,7 @@ public class CoordinatedCheckpointingSnapshot extends Snapshot {
             return;
         }
 
-        writeNodeStateToOutput();
-        setSnapshotState(false);
-
         log("Snapshot complete at Node " + getNodeId() + " for snapshot " + initiatorId);
+        setSnapshotState(false);
     }
 }
