@@ -13,7 +13,7 @@ import java.util.Set;
 public class AcharyaBadrinathSnapshot extends Snapshot {
     private boolean recorded = false;
     private final Map<Integer, Integer> channelStates = new HashMap<>();
-    private final Set<Integer> receivedMarkers = new HashSet<>();
+    private final Set<Integer> receivedFrom = new HashSet<>();
 
     public AcharyaBadrinathSnapshot(NodeRuntime runtime) {
         super(runtime);
@@ -26,13 +26,15 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
             return;
         }
 
-        log("Initiating Acharya-Badrinath snapshot...");
+        log("Initiating Acharya-Badrinath snapshot locally...");
         recorded = true;
         setSnapshotState(true);
-
         writeNodeStateToOutput();
 
-        sendMarkerToAllNeighbors("SNAPSHOT_MARKER");
+        for (int neighborId : runtime.getNodeModel().getNeighbors()) {
+            Message trigger = new Message("SNAPSHOT_TRIGGER", runtime.getId(), "AB");
+            runtime.sendMessageTo(neighborId, trigger);
+        }
     }
 
     @Override
@@ -40,27 +42,38 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
         int senderId = message.senderId();
 
         switch (message.type()) {
-            case "SNAPSHOT_MARKER" -> handleMarker(senderId);
+            case "SNAPSHOT_TRIGGER" -> handleSnapshotTrigger(senderId);
             case "TRANSFER" -> handleTransfer(senderId, Integer.parseInt(message.content()));
             default -> log("Unknown message type received: " + message.type());
         }
     }
 
     /**
-     * Handle marker from a sender
+     * Handles an incoming SNAPSHOT_TRIGGER.
+     * If this is the first trigger, initiates the snapshot and sends it to neighbors.
+     * If not, simply records the sender and continues.
      *
-     * @param senderId ID of the sender
+     * @param senderId ID of the node that sent the trigger.
      */
-    private void handleMarker(int senderId) {
-        log("Received MARKER from Node " + senderId);
+    private void handleSnapshotTrigger(int senderId) {
+        log("Received SNAPSHOT_TRIGGER from Node " + senderId);
 
-        if (!recorded) {
+        boolean firstTime = !recorded;
+
+        if (firstTime) {
             initiate();
+        } else {
+            for (int neighborId : runtime.getNodeModel().getNeighbors()) {
+                if (neighborId != senderId && !receivedFrom.contains(neighborId)) {
+                    Message trigger = new Message("SNAPSHOT_TRIGGER", runtime.getId(), "AB");
+                    runtime.sendMessageTo(neighborId, trigger);
+                }
+            }
         }
 
-        receivedMarkers.add(senderId);
+        receivedFrom.add(senderId);
 
-        if (isSnapshotComplete(receivedMarkers)) {
+        if (isSnapshotComplete(receivedFrom)) {
             log("Snapshot complete. Writing channel states...");
             writeChannelStatesToOutput();
             resetSnapshot();
@@ -68,20 +81,21 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
     }
 
     /**
-     * Handle transfer that happened during snapshot
+     * Handles a TRANSFER message during the snapshot.
+     * Buffers the amount if it arrives from a channel not yet recorded.
      *
-     * @param senderId ID of the sender node
-     * @param amount   amount to transfer
+     * @param senderId ID of the sender node.
+     * @param amount   Amount of bitcakes received.
      */
     private void handleTransfer(int senderId, int amount) {
-        if (recorded && !receivedMarkers.contains(senderId)) {
+        if (recorded && !receivedFrom.contains(senderId)) {
             channelStates.merge(senderId, amount, Integer::sum);
             log("Buffered " + amount + " from Node " + senderId + " during snapshot");
         }
     }
 
     /**
-     * Write result into output log
+     * Writes the recorded channel states to the output.
      */
     private void writeChannelStatesToOutput() {
         for (Map.Entry<Integer, Integer> entry : channelStates.entrySet()) {
@@ -90,19 +104,19 @@ public class AcharyaBadrinathSnapshot extends Snapshot {
     }
 
     /**
-     * Reset snapshot values
+     * Resets the internal snapshot state.
      */
     private void resetSnapshot() {
         setSnapshotState(false);
         recorded = false;
-        receivedMarkers.clear();
+        receivedFrom.clear();
         channelStates.clear();
     }
 
     /**
-     * Check if a snapshot can be initialized
+     * Checks whether the node is eligible to initiate a snapshot.
      *
-     * @return True if it can be, false if not
+     * @return True if a snapshot can be initiated, false otherwise.
      */
     private boolean canInitiateSnapshot() {
         return runtime.getNodeModel().getState() == NodeState.AVAILABLE && !recorded;

@@ -81,7 +81,7 @@ public class NodeRuntime {
                 int amount = Integer.parseInt(message.content());
                 receiveBitcakes(amount, senderId);
             }
-            case "CHECKPOINT_REQUEST", "CHECKPOINT_ACK", "SNAPSHOT_MARKER" -> {
+            case "SNAPSHOT_TRIGGER", "CHECKPOINT_REQUEST", "CHECKPOINT_ACK", "SNAPSHOT_MARKER" -> {
                 if (activeSnapshot != null) {
                     activeSnapshot.handleMessage(message);
                 } else {
